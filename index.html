@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff7a3d">
+<title>Lunchtime</title>
+<style>
+  :root { --bg:#fff7ef; --fg:#2b2118; --card:#fff; --accent:#ff7a3d; --muted:#8a7a6c; --line:#f0e2d3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1b1511; --fg:#f5ebe0; --card:#2a211b; --muted:#a8978a; --line:#3a2e26; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--fg);
+    padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); max-width:480px; margin-inline:auto; }
+  h1 { text-align:center; margin:4px 0 12px; font-size:1.6rem; }
+  .wheel-wrap { position:relative; width:100%; aspect-ratio:1; max-width:400px; margin:0 auto; }
+  canvas { width:100%; height:100%; display:block; }
+  .pointer { position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:0; height:0;
+    border-left:14px solid transparent; border-right:14px solid transparent; border-top:28px solid var(--fg);
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.3)); z-index:2; }
+  button { font:inherit; border:0; border-radius:12px; cursor:pointer; }
+  #spin { display:block; width:100%; margin:16px 0 8px; padding:16px; font-size:1.3rem; font-weight:700;
+    background:var(--accent); color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.2); }
+  #spin:disabled { opacity:.6; }
+  #result { text-align:center; min-height:2.2em; font-size:1.4rem; font-weight:700; margin:8px 0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; }
+  .card h2 { margin:0 0 8px; font-size:1rem; color:var(--muted); font-weight:600; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
+  li:last-child { border-bottom:0; }
+  .dot { width:14px; height:14px; border-radius:50%; flex:none; }
+  li input { flex:1; min-width:0; font:inherit; color:inherit; background:transparent; border:0; padding:6px 4px; }
+  li input:focus, .add input:focus { outline:2px solid var(--accent); border-radius:6px; }
+  li button { background:transparent; color:var(--muted); font-size:1.3rem; padding:4px 10px; }
+  .add { display:flex; gap:8px; margin-top:10px; }
+  .add input { flex:1; min-width:0; font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .add button { background:var(--accent); color:#fff; padding:10px 16px; font-weight:700; }
+  .reset { display:block; margin:12px auto 0; background:transparent; color:var(--muted); font-size:.85rem; text-decoration:underline; }
+</style>
+</head>
+<body>
+<h1>🍽️ Lunchtime</h1>
+<div class="wheel-wrap"><div class="pointer"></div><canvas id="wheel" width="800" height="800"></canvas></div>
+<button id="spin">SPIN!</button>
+<div id="result"></div>
+<div class="card">
+  <h2>Restaurants</h2>
+  <ul id="list"></ul>
+  <form class="add" id="addForm"><input id="newName" placeholder="Add a restaurant" autocomplete="off"><button>Add</button></form>
+</div>
+<button class="reset" id="reset">Reset to defaults</button>
+
+<script>
+const DEFAULTS = ["No 43","The One","The Nook","Shiubayashi","Half way house"];
+const COLORS = ["#ff7a3d","#ffc13d","#4cc38a","#3da5ff","#a56bff","#ff5e8a","#2ec4b6","#e8a33d"];
+const KEY = "lunchtime.restaurants";
+let items = load();
+let angle = 0, spinning = false;
+
+const $ = id => document.getElementById(id);
+const canvas = $("wheel"), ctx = canvas.getContext("2d");
+
+function load() {
+  try { const v = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(v)) return v; } catch (e) {}
+  return [...DEFAULTS];
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} }
+const color = i => COLORS[i % COLORS.length];
+
+function draw() {
+  const W = canvas.width, c = W / 2, r = c - 6, n = items.length;
+  ctx.clearRect(0, 0, W, W);
+  if (!n) {
+    ctx.fillStyle = "#ccc"; ctx.beginPath(); ctx.arc(c, c, r, 0, 7); ctx.fill();
+    ctx.fillStyle = "#555"; ctx.font = "bold 40px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("Add a restaurant!", c, c); return;
+  }
+  const seg = 2 * Math.PI / n;
+  ctx.save(); ctx.translate(c, c); ctx.rotate(angle);
+  items.forEach((name, i) => {
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r, i * seg, (i + 1) * seg); ctx.closePath();
+    ctx.fillStyle = color(i); ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.stroke();
+    ctx.save(); ctx.rotate(i * seg + seg / 2);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.font = "bold 44px system-ui"; ctx.shadowColor = "rgba(0,0,0,.4)"; ctx.shadowBlur = 4;
+    let t = name; const max = r - 50;
+    while (ctx.measureText(t).width > max && t.length > 1) t = t.slice(0, -1);
+    if (t !== name) t += "…";
+    ctx.fillText(t, r - 24, 0); ctx.restore();
+  });
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(c, c, 28, 0, 7); ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.strokeStyle = "#ddd"; ctx.lineWidth = 3; ctx.stroke();
+}
+
+function renderList() {
+  const ul = $("list"); ul.innerHTML = "";
+  items.forEach((name, i) => {
+    const li = document.createElement("li");
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = color(i);
+    const inp = document.createElement("input"); inp.value = name; inp.setAttribute("aria-label", "Restaurant name");
+    inp.addEventListener("input", () => { items[i] = inp.value; save(); draw(); });
+    inp.addEventListener("blur", () => { if (!inp.value.trim()) remove(i); });
+    const del = document.createElement("button"); del.textContent = "✕"; del.setAttribute("aria-label", "Remove " + name);
+    del.addEventListener("click", () => remove(i));
+    li.append(dot, inp, del); ul.append(li);
+  });
+}
+function remove(i) { items.splice(i, 1); save(); renderList(); draw(); }
+function refresh() { save(); renderList(); draw(); }
+
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("newName").value.trim();
+  if (v) { items.push(v); $("newName").value = ""; $("result").textContent = ""; refresh(); }
+});
+$("reset").addEventListener("click", () => { items = [...DEFAULTS]; $("result").textContent = ""; refresh(); });
+
+$("spin").addEventListener("click", () => {
+  if (spinning || !items.length) return;
+  spinning = true; $("spin").disabled = true; $("result").textContent = "";
+  const n = items.length, seg = 2 * Math.PI / n;
+  const start = angle, TAU = 2 * Math.PI;
+  const extra = TAU * (5 + Math.random() * 3) + Math.random() * TAU;
+  const total = extra, dur = 4500, t0 = performance.now();
+  const ease = t => 1 - Math.pow(1 - t, 4);
+  (function frame(now) {
+    const t = Math.min(1, (now - t0) / dur);
+    angle = start + total * ease(t); draw();
+    if (t < 1) return requestAnimationFrame(frame);
+    // pointer is at top (-90deg); find segment under it
+    const a = ((-Math.PI / 2 - angle) % TAU + TAU) % TAU;
+    const win = Math.floor(a / seg) % n;
+    $("result").textContent = "🎉 " + items[win];
+    if (navigator.vibrate) navigator.vibrate(200);
+    spinning = false; $("spin").disabled = false;
+  })(t0);
+});
+
+renderList(); draw();
+</script>
+</body>
+</html>
