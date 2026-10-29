@@ -1,12 +1,22 @@
 <!doctype html>
+<!-- EDIT THE RESTAURANT LIST HERE -->
+<script>
+const DEFAULTS = [
+  "No 43",
+  "The One",
+  "The Nook",
+  "Shiubayashi",
+  "The Halfway house",
+];
+</script>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ff7a3d">
+<meta name="theme-color" content="#e49a82">
 <title>Lunchtime</title>
 <style>
-  :root { --bg:#fff7ef; --fg:#2b2118; --card:#fff; --accent:#ff7a3d; --muted:#8a7a6c; --line:#f0e2d3; }
+  :root { --bg:#fff7ef; --fg:#2b2118; --card:#fff; --accent:#e49a82; --muted:#8a7a6c; --line:#f0e2d3; }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#1b1511; --fg:#f5ebe0; --card:#2a211b; --muted:#a8978a; --line:#3a2e26; }
   }
@@ -52,8 +62,7 @@
 <button class="reset" id="reset">Reset to defaults</button>
 
 <script>
-const DEFAULTS = ["No 43","The One","The Nook","Shiubayashi","The Halfway house"];
-const COLORS = ["#ff7a3d","#ffc13d","#4cc38a","#3da5ff","#a56bff","#ff5e8a","#2ec4b6","#e8a33d"];
+const COLORS = ["#f6c6b8","#f9e0a8","#c5e1c0","#b8d8ec","#d4c4e8","#f2c4d6","#b9e3dd","#f0d3b0"];
 const KEY = "lunchtime.restaurants";
 let items = load();
 let angle = 0, spinning = false;
@@ -81,10 +90,10 @@ function draw() {
   items.forEach((name, i) => {
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r, i * seg, (i + 1) * seg); ctx.closePath();
     ctx.fillStyle = color(i); ctx.fill();
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 4; ctx.stroke();
     ctx.save(); ctx.rotate(i * seg + seg / 2);
-    ctx.fillStyle = "#fff"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    ctx.font = "bold 44px system-ui"; ctx.shadowColor = "rgba(0,0,0,.4)"; ctx.shadowBlur = 4;
+    ctx.fillStyle = "#4a3b33"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.font = "600 44px system-ui";
     let t = name; const max = r - 50;
     while (ctx.measureText(t).width > max && t.length > 1) t = t.slice(0, -1);
     if (t !== name) t += "…";
